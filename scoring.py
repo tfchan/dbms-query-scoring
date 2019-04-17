@@ -23,8 +23,9 @@ def main():
     """Perform main task."""
     parser = argparse.ArgumentParser(
         description='Query homework and exam scoring tool.')
-    parser.add_argument('-b', '--batches', type=directory, default=all_dir(),
-                        nargs='*', help='Batch to score, default all batches')
+    parser.add_argument('-b', '--batches', type=directory,
+                        default=all_dir(), nargs='*',
+                        help='Batch(directory) to score, default all batches')
     args = parser.parse_args()
 
 
