@@ -5,9 +5,9 @@ import argparse
 
 
 def directory(path):
-    """Check input path if it is valid directory."""
-    if path != '' and not os.path.isdir(path):
-        msg = f"{path} isn't a valid directory"
+    """Check input path if it is a directory."""
+    if not os.path.exists(path) or not os.path.isdir(path):
+        msg = f"{path} does not exist or isn't a a directory"
         raise argparse.ArgumentTypeError(msg)
     return path
 
