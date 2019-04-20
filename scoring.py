@@ -26,6 +26,8 @@ def main():
     parser.add_argument('-b', '--batches', type=directory,
                         default=all_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
+    parser.add_argument('data', type=directory, default='data',
+                        help='Dataset directory, default "data"')
     args = parser.parse_args()
 
 
