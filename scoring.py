@@ -53,13 +53,13 @@ def main():
     parser.add_argument('-b', '--batches', type=directory,
                         default=all_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
-    parser.add_argument('-d', '--data', type=directory, default='data',
+    parser.add_argument('-D', '--data', type=directory, default='data',
                         help='Dataset directory, default "data"')
-    parser.add_argument('--db_sql', type=sql_file,
+    parser.add_argument('-d', '--db_sql', type=sql_file,
                         help='Sql file for creating and using database')
-    parser.add_argument('--tb_sql', type=sql_file,
+    parser.add_argument('-t', '--tb_sql', type=sql_file,
                         help='Sql file for creating and table')
-    parser.add_argument('--import_sql', type=sql_file,
+    parser.add_argument('-i', '--import_sql', type=sql_file,
                         help='Sql file for importing data')
     args = parser.parse_args()
 
