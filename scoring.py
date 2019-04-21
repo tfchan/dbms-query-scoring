@@ -2,6 +2,7 @@
 """Tool for scoring query homework and exam."""
 import os
 import argparse
+import subprocess
 
 
 def directory(path):
@@ -28,8 +29,22 @@ def sql_file(path):
     return path
 
 
+def start_server(path):
+    """Start MySQL server."""
+    print('Starting MySQL server...')
+    if not os.path.exists(path):
+        msg = f'{path} does not exist'
+        raise Exception(msg)
+    ret = subprocess.run(path)
+    if ret.returncode != 0:
+        print('Fail to start MySQL server')
+        exit(1)
+    print('Start complete')
+
+
 def main():
     """Perform main task."""
+    # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Query homework and exam scoring tool.')
     parser.add_argument('-s', '--students', type=str, default='students.csv',
@@ -46,6 +61,9 @@ def main():
     parser.add_argument('--import_sql', type=sql_file,
                         help='Sql file for importing data')
     args = parser.parse_args()
+
+    # Start MySQL server
+    start_server('./start_mysql_server.sh')
 
 
 if __name__ == '__main__':
