@@ -35,7 +35,8 @@ def start_server(path):
     if not os.path.exists(path):
         msg = f'{path} does not exist'
         raise Exception(msg)
-    ret = subprocess.run(path)
+    ret = subprocess.run(path, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
     if ret.returncode != 0:
         print('Fail to start MySQL server')
         exit(1)
