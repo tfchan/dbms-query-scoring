@@ -20,14 +20,6 @@ def all_dir():
     return dirs
 
 
-def sql_file(path):
-    """Check input path if it is a sql file."""
-    if not os.path.isfile(path) or not path.endswith('.sql'):
-        msg = f"{path} does not exist or isn't a sql file"
-        raise argparse.ArgumentTypeError(msg)
-    return path
-
-
 def mysql_server(path, start=True):
     """Start or stop MySQL server."""
     if not os.path.exists(path):
@@ -73,11 +65,6 @@ def main():
     parser.add_argument('-b', '--batches', type=directory,
                         default=all_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
-    parser.add_argument('-D', '--data', type=directory, default='data',
-                        help='Dataset directory, default "data"')
-    parser.add_argument('-S', '--setup', type=sql_file,
-                        default='data/setup.sql',
-                        help='Sql file for setting up database and tables')
     args = parser.parse_args()
 
     # Start MySQL server
