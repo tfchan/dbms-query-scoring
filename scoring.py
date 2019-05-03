@@ -45,18 +45,24 @@ def run_query(sql_file, database='', out_file=''):
         msg = f'{sql_file} does not exist'
         raise Exception(msg)
 
-    mount_folder = '/data'
+    mount_loc = '/data'
     sql_folder = os.path.dirname(os.path.abspath(sql_file))
     cmd = ('docker run --link some-mysql:mysql'
-           f' -v {sql_folder}:{mount_folder} --rm mysql:5.7'
+           f' -v {sql_folder}:{mount_loc} --rm mysql:5.7'
            ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
            ' -P"$MYSQL_PORT_3306_TCP_PORT"'
            ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
            f' -N {database}'
-           f' < {os.path.join(mount_folder, os.path.basename(sql_file))}\'')
+           f' < {os.path.join(mount_loc, os.path.basename(sql_file))}\'')
     result = subprocess.run(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, shell=True,
                             universal_newlines=True)
+
+
+def check_batch(batch):
+    """Check each student's result in this batch."""
+    ans_folder = os.path.join(batch, 'answer')
+    student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
 
 
 def main():
@@ -69,12 +75,21 @@ def main():
     parser.add_argument('-b', '--batches', type=directory,
                         default=list_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
+    parser.add_argument('-d', '--data', type=directory, default='data',
+                        help='Folder containing dataset and setup script')
     args = parser.parse_args()
 
     # Start MySQL server
     mysql_server('./start_mysql_server.sh')
 
-    run_query(args.setup)
+    # Setup database and tables
+    setup_sql = os.path.join(args.data, 'setup.sql')
+    run_query(setup_sql)
+
+    # Check answer in each batch
+    batches = filter(lambda d: d != args.data, args.batches)
+    for batch in batches:
+        check_batch(batch)
 
     # Clean up MySQL server
     mysql_server('./cleanup_mysql_server.sh', start=False)
