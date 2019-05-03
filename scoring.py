@@ -55,12 +55,8 @@ def main():
                         help='Batch(directory) to score, default all batches')
     parser.add_argument('-D', '--data', type=directory, default='data',
                         help='Dataset directory, default "data"')
-    parser.add_argument('-d', '--db_sql', type=sql_file,
-                        help='Sql file for creating and using database')
-    parser.add_argument('-t', '--tb_sql', type=sql_file,
-                        help='Sql file for creating and table')
-    parser.add_argument('-i', '--import_sql', type=sql_file,
-                        help='Sql file for importing data')
+    parser.add_argument('-S', '--setup', type=sql_file, default='setup.sql',
+                        help='Sql file for setting up database and tables')
     args = parser.parse_args()
 
     # Start MySQL server
