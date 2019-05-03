@@ -43,6 +43,26 @@ def mysql_server(path, start=True):
     print(f'{s} success')
 
 
+def run_query(sql_file, database='', out_file=''):
+    """Run the sql file."""
+    if not os.path.isfile(sql_file):
+        msg = f'{sql_file} does not exist'
+        raise Exception(msg)
+
+    mount_folder = '/data'
+    sql_folder = os.path.dirname(os.path.abspath(sql_file))
+    cmd = ('docker run --link some-mysql:mysql'
+           f' -v {sql_folder}:{mount_folder} --rm mysql:5.7'
+           ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
+           ' -P"$MYSQL_PORT_3306_TCP_PORT"'
+           ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
+           f' -N {database}'
+           f' < {os.path.join(mount_folder, os.path.basename(sql_file))}\'')
+    result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, shell=True,
+                            universal_newlines=True)
+
+
 def main():
     """Perform main task."""
     # Parse command line arguments
@@ -55,12 +75,15 @@ def main():
                         help='Batch(directory) to score, default all batches')
     parser.add_argument('-D', '--data', type=directory, default='data',
                         help='Dataset directory, default "data"')
-    parser.add_argument('-S', '--setup', type=sql_file, default='setup.sql',
+    parser.add_argument('-S', '--setup', type=sql_file,
+                        default='data/setup.sql',
                         help='Sql file for setting up database and tables')
     args = parser.parse_args()
 
     # Start MySQL server
     mysql_server('./start_mysql_server.sh')
+
+    run_query(args.setup)
 
     # Clean up MySQL server
     mysql_server('./cleanup_mysql_server.sh', start=False)
