@@ -31,16 +31,16 @@ def sql_file(path):
 
 def start_server(path):
     """Start MySQL server."""
-    print('Starting MySQL server...')
     if not os.path.exists(path):
         msg = f'{path} does not exist'
         raise Exception(msg)
+    print('Starting MySQL server...')
     ret = subprocess.run(path, stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL)
+                         stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        print('Fail to start MySQL server')
+        print(f'Fail to start MySQL server\n{ret.stderr.decode()}')
         exit(1)
-    print('Start complete')
+    print('Success! Ready for connections')
 
 
 def main():
