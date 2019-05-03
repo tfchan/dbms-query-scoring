@@ -13,11 +13,15 @@ def directory(path):
     return path
 
 
-def all_dir():
-    """Return list of unhidden directorys in working directory."""
-    dirs = list(filter(os.path.isdir, os.listdir()))
-    dirs = [dir_ for dir_ in dirs if not dir_.startswith('.')]
-    return dirs
+def list_dir(path=None):
+    """Return list of unhidden directorys in given/current directory."""
+    if path is None:
+        dirs = os.listdir()
+    else:
+        dirs = map(lambda d: os.path.join(path, d), os.listdir(path))
+    dirs = filter(os.path.isdir, dirs)
+    dirs = filter(lambda d: not d.startswith('.'), dirs)
+    return list(dirs)
 
 
 def mysql_server(path, start=True):
@@ -63,7 +67,7 @@ def main():
     parser.add_argument('-s', '--students', type=str, default='students.csv',
                         help='Student ID or csv file containing all IDs')
     parser.add_argument('-b', '--batches', type=directory,
-                        default=all_dir(), nargs='*',
+                        default=list_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
     args = parser.parse_args()
 
