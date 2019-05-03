@@ -7,7 +7,7 @@ import subprocess
 
 def directory(path):
     """Check input path if it is a directory."""
-    if not os.path.exists(path) or not os.path.isdir(path):
+    if not os.path.isdir(path):
         msg = f"{path} does not exist or isn't a a directory"
         raise argparse.ArgumentTypeError(msg)
     return path
@@ -22,8 +22,7 @@ def all_dir():
 
 def sql_file(path):
     """Check input path if it is a sql file."""
-    if (not os.path.exists(path) or not os.path.isfile(path)
-            or not path.endswith('.sql')):
+    if not os.path.isfile(path) or not path.endswith('.sql'):
         msg = f"{path} does not exist or isn't a sql file"
         raise argparse.ArgumentTypeError(msg)
     return path
