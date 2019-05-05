@@ -29,7 +29,7 @@ def mysql_server(path, start=True):
     if not os.path.exists(path):
         msg = f'{path} does not exist'
         raise Exception(msg)
-    s = 'start' if start else 'stop'
+    s = 'Start' if start else 'Stop'
     print(f'{s}ing MySQL server...')
     ret = subprocess.run(path, stdout=subprocess.DEVNULL,
                          stderr=subprocess.PIPE)
@@ -39,21 +39,28 @@ def mysql_server(path, start=True):
     print(f'{s} success')
 
 
-def run_query(sql_file, database='', out_file=''):
+def run_query(sql_file, database=None, out_file=None):
     """Run the sql file."""
     if not os.path.isfile(sql_file):
         msg = f'{sql_file} does not exist'
         raise Exception(msg)
 
+    # Generate docker command to run query
     mount_loc = '/data'
     sql_folder = os.path.dirname(os.path.abspath(sql_file))
+    # Run mysql container, mount query folder, disable header
     cmd = ('docker run --link some-mysql:mysql'
            f' -v {sql_folder}:{mount_loc} --rm mysql:5.7'
            ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
            ' -P"$MYSQL_PORT_3306_TCP_PORT"'
-           ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
-           f' -N {database}'
-           f' < {os.path.join(mount_loc, os.path.basename(sql_file))}\'')
+           ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD" -N')
+    # Specific database
+    cmd += '' if database is None else f' {database}'
+    # Redirect query in sql file to stdin of container
+    cmd += f' < {os.path.join(mount_loc, os.path.basename(sql_file))}'
+    # Redirect stdout of container to a file
+    cmd += '' if out_file is None else f' > {out_file}'
+    cmd += '\''
     result = subprocess.run(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, shell=True,
                             universal_newlines=True)
@@ -83,12 +90,14 @@ def main():
     mysql_server('./start_mysql_server.sh')
 
     # Setup database and tables
+    print('Setting up...')
     setup_sql = os.path.join(args.data, 'setup.sql')
     run_query(setup_sql)
 
     # Check answer in each batch
-    batches = filter(lambda d: d != args.data, args.batches)
-    for batch in batches:
+    batches = list(filter(lambda d: d != args.data, args.batches))
+    for i, batch in enumerate(batches):
+        print(f'Running batch {i} of {len(batches)}')
         check_batch(batch)
 
     # Clean up MySQL server
