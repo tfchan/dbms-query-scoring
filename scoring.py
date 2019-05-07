@@ -4,6 +4,7 @@ import os
 import argparse
 import subprocess
 import filecmp
+import pandas as pd
 
 
 def directory(path):
@@ -97,12 +98,12 @@ def generate_query_results(folder, questions=None):
             if ret.returncode == 0:
                 err_str = ''
             else:
-                err_str = ret.stderr.strip()[1]
+                err_str = ret.stderr.splitlines()[1]
         results[query_file] = err_str
     return results
 
 
-def check_batch(batch):
+def check_batch(students, batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
@@ -113,7 +114,14 @@ def check_batch(batch):
     for student_folder in student_folders:
         ret = generate_query_results(student_folder, success_q)
         file_to_cmp = [qname2aname(q) for q in success_q]
-        same, diff, nexist = filecmp(ans_folder, student_folder, file_to_cmp)
+        same, diff, nexist = filecmp.cmpfiles(
+            ans_folder, student_folder, file_to_cmp)
+        student_id = int(os.path.basename(student_folder))
+        for q in success_q:
+            if qname2aname(q) in same:
+                students.loc[student_id, q] = 'v'
+            else:
+                students.loc[student_id, q] = ret[q]
 
 
 def main():
@@ -130,6 +138,8 @@ def main():
                         help='Folder containing dataset and setup script')
     args = parser.parse_args()
 
+    students = pd.read_csv(args.students).set_index('id')
+
     # Start MySQL server
     mysql_server('./start_mysql_server.sh')
 
@@ -142,7 +152,8 @@ def main():
     batches = list(filter(lambda d: d != args.data, args.batches))
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i} of {len(batches)}')
-        check_batch(batch)
+        check_batch(students, batch)
+    students.to_csv('score.csv')
 
     # Clean up MySQL server
     mysql_server('./cleanup_mysql_server.sh', start=False)
