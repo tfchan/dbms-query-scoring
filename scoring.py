@@ -89,9 +89,16 @@ def generate_query_results(folder, questions=None):
         out_file = os.path.join(folder, out_file)
         ret = run_query(query_path, database='exam', out_file=out_file)
         if isinstance(ret, int):
-            results[query_file] = 'No submission' if ret == 1 else 'Error'
+            if ret == 2:
+                err_str = 'Unicode decode error'
+            else:
+                err_str = 'No submission'
         else:
-            results[query_file] = 'P' if ret.returncode == 0 else ret.stderr
+            if ret.returncode == 0:
+                err_str = ''
+            else:
+                err_str = ret.stderr.strip()[1]
+        results[query_file] = err_str
     return results
 
 
@@ -100,12 +107,13 @@ def check_batch(batch):
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
     ret = generate_query_results(ans_folder)
-    success_q = list(filter(lambda k: ret[k] == 'P', ret.keys()))
+    success_q = list(filter(lambda k: ret[k] == '', ret.keys()))
     success_q.sort()
     print(f'Questions {success_q} will be checked')
     for student_folder in student_folders:
         ret = generate_query_results(student_folder, success_q)
         file_to_cmp = [qname2aname(q) for q in success_q]
+        same, diff, nexist = filecmp(ans_folder, student_folder, file_to_cmp)
 
 
 def main():
