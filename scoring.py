@@ -5,6 +5,7 @@ import argparse
 import subprocess
 import filecmp
 import pandas as pd
+import tqdm
 
 
 def directory(path):
@@ -115,7 +116,7 @@ def check_batch(students, batch):
     success_q = list(filter(lambda k: ret[k] == '', ret.keys()))
     success_q.sort()
     print(f'Questions {success_q} will be checked')
-    for student_folder in student_folders:
+    for student_folder in tqdm.tqdm(student_folders):
         ret = generate_query_results(student_folder, success_q)
         file_to_cmp = [qname2aname(q) for q in success_q]
         same, diff, nexist = filecmp.cmpfiles(
