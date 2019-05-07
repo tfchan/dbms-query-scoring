@@ -68,6 +68,12 @@ def run_query(sql_file, database=None, out_file=None):
     return result
 
 
+def qname2aname(q):
+    """Convert question file name to answer file names."""
+    a = q.replace('.sql', '.txt').replace('q', 'a')
+    return a
+
+
 def generate_query_results(folder, questions=None):
     """Run query file in folder and generate results."""
     if questions is None:
@@ -75,7 +81,7 @@ def generate_query_results(folder, questions=None):
             lambda f: f.endswith('.sql'), os.listdir(folder)))
     results = {}
     for query_file in questions:
-        out_file = query_file.replace('.sql', '.txt').replace('q', 'a')
+        out_file = qname2aname(query_file)
         query_path = os.path.join(folder, query_file)
         out_file = os.path.join(folder, out_file)
         ret = run_query(query_path, database='exam', out_file=out_file)
@@ -91,6 +97,9 @@ def check_batch(batch):
     success_q = list(filter(lambda k: ret[k] == 'P', ret.keys()))
     success_q.sort()
     print(f'Questions {success_q} will be checked')
+    for student_folder in student_folders:
+        ret = generate_query_results(student_folder, success_q)
+        file_to_cmp = [qname2aname(q) for q in success_q]
 
 
 def main():
