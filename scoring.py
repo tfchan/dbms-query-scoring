@@ -66,9 +66,11 @@ def run_query(sql_file, database=None, out_file=None):
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True,
-                                universal_newlines=True)
+                                universal_newlines=True, timeout=120)
     except UnicodeDecodeError:
         return 2
+    except subprocess.TimeoutExpired:
+        return 3
     return result
 
 
@@ -90,7 +92,9 @@ def generate_query_results(folder, questions=None):
         out_file = os.path.join(folder, out_file)
         ret = run_query(query_path, database='exam', out_file=out_file)
         if isinstance(ret, int):
-            if ret == 2:
+            if ret == 3:
+                err_str = 'Timeout'
+            elif ret == 2:
                 err_str = 'Unicode decode error'
             else:
                 err_str = 'No submission'
