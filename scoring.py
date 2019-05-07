@@ -65,26 +65,32 @@ def run_query(sql_file, database=None, out_file=None):
     result = subprocess.run(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, shell=True,
                             universal_newlines=True)
+    return result
 
 
 def generate_query_results(folder, questions=None):
     """Run query file in folder and generate results."""
     if questions is None:
-        questions = os.listdir(folder)
-    success_questions = []
+        questions = list(filter(
+            lambda f: f.endswith('.sql'), os.listdir(folder)))
+    results = {}
     for query_file in questions:
         out_file = query_file.replace('.sql', '.txt').replace('q', 'a')
-        query_file = os.path.join(folder, query_file)
+        query_path = os.path.join(folder, query_file)
         out_file = os.path.join(folder, out_file)
-        run_query(query_file, database='exam', out_file=out_file)
-    return success_questions
+        ret = run_query(query_path, database='exam', out_file=out_file)
+        results[query_file] = 'P' if ret.returncode == 0 else ret.stderr
+    return results
 
 
 def check_batch(batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
-    generate_query_results(ans_folder)
+    ret = generate_query_results(ans_folder)
+    success_q = list(filter(lambda k: ret[k] == 'P', ret.keys()))
+    success_q.sort()
+    print(f'Questions {success_q} will be checked')
 
 
 def main():
@@ -112,7 +118,7 @@ def main():
     # Check answer in each batch
     batches = list(filter(lambda d: d != args.data, args.batches))
     for i, batch in enumerate(batches):
-        print(f'Running batch {i} of {len(batches)}')
+        print(f'Running batch [{batch}], {i} of {len(batches)}')
         check_batch(batch)
 
     # Clean up MySQL server
