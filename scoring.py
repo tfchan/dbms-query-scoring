@@ -3,6 +3,7 @@
 import os
 import argparse
 import subprocess
+import filecmp
 
 
 def directory(path):
@@ -42,8 +43,7 @@ def mysql_server(path, start=True):
 def run_query(sql_file, database=None, out_file=None):
     """Run the sql file."""
     if not os.path.isfile(sql_file):
-        msg = f'{sql_file} does not exist'
-        raise Exception(msg)
+        return 1
 
     # Generate docker command to run query
     mount_loc = '/data'
@@ -62,9 +62,12 @@ def run_query(sql_file, database=None, out_file=None):
     if not (out_file is None):
         cmd += f' > {os.path.join(mount_loc, os.path.basename(out_file))}'
     cmd += '\''
-    result = subprocess.run(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, shell=True,
-                            universal_newlines=True)
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, shell=True,
+                                universal_newlines=True)
+    except UnicodeDecodeError:
+        return 2
     return result
 
 
@@ -85,7 +88,10 @@ def generate_query_results(folder, questions=None):
         query_path = os.path.join(folder, query_file)
         out_file = os.path.join(folder, out_file)
         ret = run_query(query_path, database='exam', out_file=out_file)
-        results[query_file] = 'P' if ret.returncode == 0 else ret.stderr
+        if isinstance(ret, int):
+            results[query_file] = 'No submission' if ret == 1 else 'Error'
+        else:
+            results[query_file] = 'P' if ret.returncode == 0 else ret.stderr
     return results
 
 
