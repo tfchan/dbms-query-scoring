@@ -59,17 +59,32 @@ def run_query(sql_file, database=None, out_file=None):
     # Redirect query in sql file to stdin of container
     cmd += f' < {os.path.join(mount_loc, os.path.basename(sql_file))}'
     # Redirect stdout of container to a file
-    cmd += '' if out_file is None else f' > {out_file}'
+    if not (out_file is None):
+        cmd += f' > {os.path.join(mount_loc, os.path.basename(out_file))}'
     cmd += '\''
     result = subprocess.run(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, shell=True,
                             universal_newlines=True)
 
 
+def generate_query_results(folder, questions=None):
+    """Run query file in folder and generate results."""
+    if questions is None:
+        questions = os.listdir(folder)
+    success_questions = []
+    for query_file in questions:
+        out_file = query_file.replace('.sql', '.txt').replace('q', 'a')
+        query_file = os.path.join(folder, query_file)
+        out_file = os.path.join(folder, out_file)
+        run_query(query_file, database='exam', out_file=out_file)
+    return success_questions
+
+
 def check_batch(batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
+    generate_query_results(ans_folder)
 
 
 def main():
