@@ -7,6 +7,7 @@ import filecmp
 import signal
 import pandas as pd
 import tqdm
+import numpy as np
 
 
 def directory(path):
@@ -115,6 +116,36 @@ def generate_query_results(folder, questions=None):
     return results
 
 
+def cmp_results(ans_dir, student_dir, file_to_cmp):
+    """Compare two directories for specific files."""
+    same = []
+    for f in file_to_cmp:
+        ans_file = os.path.join(ans_dir, f)
+        student_file = os.path.join(student_dir, f)
+        # Check identical of files
+        if filecmp.cmp(ans_dir, student_dir):
+            same += [f]
+        # Only check numeric columns when files aren't completely identical
+        else:
+            try:
+                f1 = pd.read_csv(ans_file, sep='\t', header=None)
+                f2 = pd.read_csv(student_file, sep='\t', header=None)
+            # Skip if no content or file not exist
+            except (pd.errors.EmptyDataError, FileNotFoundError):
+                continue
+            if f1.shape != f2.shape:
+                continue
+            all_same = True
+            # Compare each column if they are close to each other
+            for c in f1:
+                if (pd.api.types.is_numeric_dtype(f1[c])
+                        and pd.api.types.is_numeric_dtype(f2[c])):
+                    all_same = all_same and np.allclose(f1[c], f2[c])
+            if all_same:
+                same += [f]
+    return same
+
+
 def check_batch(students, batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
@@ -128,8 +159,7 @@ def check_batch(students, batch):
         student_folders_tqdm.set_description(f'Running {student_folder}')
         ret = generate_query_results(student_folder, success_q)
         file_to_cmp = [qname2aname(q) for q in success_q]
-        same, diff, nexist = filecmp.cmpfiles(
-            ans_folder, student_folder, file_to_cmp)
+        same = cmp_results(ans_folder, student_folder, file_to_cmp)
         student_id = int(os.path.basename(student_folder))
         for q in success_q:
             if qname2aname(q) in same:
@@ -153,6 +183,7 @@ def main():
     args = parser.parse_args()
 
     students = pd.read_csv(args.students).set_index('id')
+    students = students.sort_index()
 
     # Start MySQL server
     mysql_server('./start_mysql_server.sh')
@@ -165,6 +196,7 @@ def main():
     # Check answer in each batch
     signal.signal(signal.SIGALRM, sigalrm_handler)
     batches = list(filter(lambda d: d != args.data, args.batches))
+    batches.sort()
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i} of {len(batches)}')
         check_batch(students, batch)
