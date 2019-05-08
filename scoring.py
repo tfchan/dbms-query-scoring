@@ -4,6 +4,7 @@ import os
 import argparse
 import subprocess
 import filecmp
+import signal
 import pandas as pd
 import tqdm
 
@@ -42,6 +43,12 @@ def mysql_server(path, start=True):
     print(f'{s} success')
 
 
+def sigalrm_handler(signum, frame):
+    """Handle SIGALRM."""
+    subprocess.run('docker stop client', stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL, shell=True)
+
+
 def run_query(sql_file, database=None, out_file=None):
     """Run the sql file."""
     if not os.path.isfile(sql_file):
@@ -51,7 +58,7 @@ def run_query(sql_file, database=None, out_file=None):
     mount_loc = '/data'
     sql_folder = os.path.dirname(os.path.abspath(sql_file))
     # Run mysql container, mount query folder, disable header
-    cmd = ('docker run --link some-mysql:mysql'
+    cmd = ('docker run --name client --link some-mysql:mysql'
            f' -v {sql_folder}:{mount_loc} --rm mysql:5.7'
            ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
            ' -P"$MYSQL_PORT_3306_TCP_PORT"'
@@ -65,13 +72,13 @@ def run_query(sql_file, database=None, out_file=None):
         cmd += f' > {os.path.join(mount_loc, os.path.basename(out_file))}'
     cmd += '\''
     try:
+        signal.alarm(120)
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True,
-                                universal_newlines=True, timeout=120)
+                                universal_newlines=True)
     except UnicodeDecodeError:
-        return 2
-    except subprocess.TimeoutExpired:
-        return 3
+        result = 2
+    signal.alarm(0)
     return result
 
 
@@ -93,15 +100,15 @@ def generate_query_results(folder, questions=None):
         out_file = os.path.join(folder, out_file)
         ret = run_query(query_path, database='exam', out_file=out_file)
         if isinstance(ret, int):
-            if ret == 3:
-                err_str = 'Timeout'
-            elif ret == 2:
+            if ret == 2:
                 err_str = 'Unicode decode error'
             else:
                 err_str = 'No submission'
         else:
             if ret.returncode == 0:
                 err_str = ''
+            elif ret.returncode == 137:
+                err_str = 'Timeout'
             else:
                 err_str = ret.stderr.splitlines()[1]
         results[query_file] = err_str
@@ -116,7 +123,9 @@ def check_batch(students, batch):
     success_q = list(filter(lambda k: ret[k] == '', ret.keys()))
     success_q.sort()
     print(f'Questions {success_q} will be checked')
-    for student_folder in tqdm.tqdm(student_folders):
+    student_folders_tqdm = tqdm.tqdm(student_folders)
+    for student_folder in student_folders_tqdm:
+        student_folders_tqdm.set_description(f'Running {student_folder}')
         ret = generate_query_results(student_folder, success_q)
         file_to_cmp = [qname2aname(q) for q in success_q]
         same, diff, nexist = filecmp.cmpfiles(
@@ -126,7 +135,7 @@ def check_batch(students, batch):
             if qname2aname(q) in same:
                 students.loc[student_id, q] = 'v'
             else:
-                students.loc[student_id, q] = ret[q]
+                students.loc[student_id, q] = 'x' if ret[q] == '' else ret[q]
 
 
 def main():
@@ -154,6 +163,7 @@ def main():
     run_query(setup_sql)
 
     # Check answer in each batch
+    signal.signal(signal.SIGALRM, sigalrm_handler)
     batches = list(filter(lambda d: d != args.data, args.batches))
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i} of {len(batches)}')
