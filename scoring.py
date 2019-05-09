@@ -10,6 +10,7 @@ import tqdm
 import numpy as np
 
 
+_timeout = 120
 _mysql_username = 'user'
 _mysql_pw = 'user'
 
@@ -83,7 +84,7 @@ def run_query(sql_file, database=None, out_file=None, root=False):
         cmd += f' > {os.path.join(mount_loc, os.path.basename(out_file))}'
     cmd += '\''
     try:
-        signal.alarm(120)
+        signal.alarm(_timeout)
         result = subprocess.run(cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True,
                                 universal_newlines=True)
@@ -162,6 +163,7 @@ def check_batch(students, batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
+    student_folders.sort()
     ret = generate_query_results(ans_folder)
     success_q = list(filter(lambda k: ret[k] == '', ret.keys()))
     success_q.sort()
