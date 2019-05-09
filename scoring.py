@@ -10,6 +10,10 @@ import tqdm
 import numpy as np
 
 
+_mysql_username = 'user'
+_mysql_pw = 'user'
+
+
 def directory(path):
     """Check input path if it is a directory."""
     if not os.path.isdir(path):
@@ -50,7 +54,7 @@ def sigalrm_handler(signum, frame):
                    stderr=subprocess.DEVNULL, shell=True)
 
 
-def run_query(sql_file, database=None, out_file=None):
+def run_query(sql_file, database=None, out_file=None, root=False):
     """Run the sql file."""
     if not os.path.isfile(sql_file):
         return 1
@@ -62,8 +66,14 @@ def run_query(sql_file, database=None, out_file=None):
     cmd = ('docker run --name client --link some-mysql:mysql'
            f' -v {sql_folder}:{mount_loc} --rm mysql:5.7'
            ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
-           ' -P"$MYSQL_PORT_3306_TCP_PORT"'
-           ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD" -N')
+           ' -P"$MYSQL_PORT_3306_TCP_PORT"')
+    # Run with root or not
+    if root:
+        cmd += ' -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
+    else:
+        cmd += f' -u{_mysql_username} -p"{_mysql_pw}"'
+    # No header
+    cmd += ' -N'
     # Specific database
     cmd += '' if database is None else f' {database}'
     # Redirect query in sql file to stdin of container
@@ -191,7 +201,7 @@ def main():
     # Setup database and tables
     print('Setting up...')
     setup_sql = os.path.join(args.data, 'setup.sql')
-    run_query(setup_sql)
+    run_query(setup_sql, root=True)
 
     # Check answer in each batch
     signal.signal(signal.SIGALRM, sigalrm_handler)
