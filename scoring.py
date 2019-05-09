@@ -64,7 +64,7 @@ def run_query(sql_file, database=None, out_file=None, root=False):
     sql_folder = os.path.dirname(os.path.abspath(sql_file))
     # Run mysql container, mount query folder, disable header
     cmd = ('docker run --name client --link some-mysql:mysql'
-           f' -v {sql_folder}:{mount_loc} --rm mysql:5.7'
+           f' -u `id -u` -v {sql_folder}:{mount_loc} --rm mysql:5.7'
            ' sh -c \'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR"'
            ' -P"$MYSQL_PORT_3306_TCP_PORT"')
     # Run with root or not
@@ -121,7 +121,9 @@ def generate_query_results(folder, questions=None):
             elif ret.returncode == 137:
                 err_str = 'Timeout'
             else:
-                err_str = ret.stderr.splitlines()[1]
+                with open(out_file, 'a') as f:
+                    f.write(ret.stderr.splitlines()[1])
+                err_str = 'Syntax error'
         results[query_file] = err_str
     return results
 
@@ -173,9 +175,9 @@ def check_batch(students, batch):
         student_id = int(os.path.basename(student_folder))
         for q in success_q:
             if qname2aname(q) in same:
-                students.loc[student_id, q] = 'v'
+                students.loc[student_id, q] = 'V'
             else:
-                students.loc[student_id, q] = 'x' if ret[q] == '' else ret[q]
+                students.loc[student_id, q] = 'X' if ret[q] == '' else ret[q]
 
 
 def main():
