@@ -13,6 +13,7 @@ import numpy as np
 _timeout = 120
 _mysql_username = 'user'
 _mysql_pw = 'user'
+_db = 'exam'
 
 
 def directory(path):
@@ -110,7 +111,7 @@ def generate_query_results(folder, questions=None):
         out_file = qname2aname(query_file)
         query_path = os.path.join(folder, query_file)
         out_file = os.path.join(folder, out_file)
-        ret = run_query(query_path, database='exam', out_file=out_file)
+        ret = run_query(query_path, database=_db, out_file=out_file)
         if isinstance(ret, int):
             if ret == 2:
                 err_str = 'Unicode decode error'
