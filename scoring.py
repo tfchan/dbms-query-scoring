@@ -213,7 +213,7 @@ def main():
     batches = list(filter(lambda d: d != args.data, args.batches))
     batches.sort()
     for i, batch in enumerate(batches):
-        print(f'Running batch [{batch}], {i} of {len(batches)}')
+        print(f'Running batch [{batch}], {i + 1} of {len(batches)}')
         check_batch(students, batch)
     students.to_csv('score.csv')
 
