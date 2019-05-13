@@ -136,27 +136,26 @@ def cmp_results(ans_dir, student_dir, file_to_cmp):
     for f in file_to_cmp:
         ans_file = os.path.join(ans_dir, f)
         student_file = os.path.join(student_dir, f)
-        # Check identical of files
-        if filecmp.cmp(ans_dir, student_dir):
-            same += [f]
-        # Only check numeric columns when files aren't completely identical
-        else:
-            try:
+        try:
+            # Check identical of files
+            if filecmp.cmp(ans_file, student_file):
+                same += [f]
+            # Only check numeric columns when files aren't completely identical
+            else:
                 f1 = pd.read_csv(ans_file, sep='\t', header=None)
                 f2 = pd.read_csv(student_file, sep='\t', header=None)
-            # Skip if no content or file not exist
-            except (pd.errors.EmptyDataError, FileNotFoundError):
-                continue
-            if f1.shape != f2.shape:
-                continue
-            all_same = True
-            # Compare each column if they are close to each other
-            for c in f1:
-                if (pd.api.types.is_numeric_dtype(f1[c])
-                        and pd.api.types.is_numeric_dtype(f2[c])):
-                    all_same = all_same and np.allclose(f1[c], f2[c])
-            if all_same:
-                same += [f]
+                if f1.shape != f2.shape or np.any(f1.dtypes != f2.dtypes):
+                    continue
+                all_same = True
+                # Compare each column if they are close to each other
+                for c in f1:
+                    if (pd.api.types.is_numeric_dtype(f1[c])
+                            and pd.api.types.is_numeric_dtype(f2[c])):
+                        all_same = all_same and np.allclose(f1[c], f2[c])
+                if all_same:
+                    same += [f]
+        except (pd.errors.EmptyDataError, FileNotFoundError):
+            continue
     return same
 
 
@@ -184,7 +183,7 @@ def check_batch(ids, results, batch):
         same = cmp_results(ans_folder, student_folder, file_to_cmp)
         student_id = int(os.path.basename(student_folder))
         for q in success_q:
-            if qname2aname(q) in same:
+            if qname2aname(q) in same and ret[q] == '':
                 results.loc[student_id, q] = 'V'
             else:
                 results.loc[student_id, q] = 'X' if ret[q] == '' else ret[q]
