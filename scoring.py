@@ -144,7 +144,7 @@ def cmp_results(ans_dir, student_dir, file_to_cmp):
             else:
                 f1 = pd.read_csv(ans_file, sep='\t', header=None)
                 f2 = pd.read_csv(student_file, sep='\t', header=None)
-                if f1.shape != f2.shape or np.any(f1.dtypes != f2.dtypes):
+                if f1.shape != f2.shape:
                     continue
                 all_same = True
                 # Compare each column if they are close to each other
@@ -223,6 +223,8 @@ def main():
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i + 1} of {len(batches)}')
         check_batch(args.id, results, batch)
+
+    # Save result
     results.to_csv(args.results)
 
     # Clean up MySQL server
