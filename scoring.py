@@ -160,11 +160,18 @@ def cmp_results(ans_dir, student_dir, file_to_cmp):
     return same
 
 
-def check_batch(results, batch):
+def check_batch(ids, results, batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
     student_folders.sort()
+    if not (ids is None):
+        scoring_ids = set(map(lambda id: os.path.join(batch, id), ids))
+        batch_ids = set(student_folders)
+        if scoring_ids.isdisjoint(batch_ids):
+            return
+        else:
+            student_folders = list(scoring_ids.intersection(batch_ids))
     ret = generate_query_results(ans_folder)
     success_q = list(filter(lambda k: ret[k] == '', ret.keys()))
     success_q.sort()
@@ -188,7 +195,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Query homework and exam scoring tool.')
-    parser.add_argument('-i', '--id', type=str,
+    parser.add_argument('-i', '--id', type=str, nargs='*',
                         help='Student ID of submission to be scored')
     parser.add_argument('-r', '--results', type=str, default='results.csv',
                         help='Result file, update if already exist')
@@ -216,7 +223,7 @@ def main():
     batches.sort()
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i + 1} of {len(batches)}')
-        check_batch(results, batch)
+        check_batch(args.id, results, batch)
     results.to_csv(args.results)
 
     # Clean up MySQL server
