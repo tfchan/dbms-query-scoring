@@ -160,7 +160,7 @@ def cmp_results(ans_dir, student_dir, file_to_cmp):
     return same
 
 
-def check_batch(students, batch):
+def check_batch(results, batch):
     """Check each student's result in this batch."""
     ans_folder = os.path.join(batch, 'answer')
     student_folders = list(filter(lambda d: d != ans_folder, list_dir(batch)))
@@ -178,9 +178,9 @@ def check_batch(students, batch):
         student_id = int(os.path.basename(student_folder))
         for q in success_q:
             if qname2aname(q) in same:
-                students.loc[student_id, q] = 'V'
+                results.loc[student_id, q] = 'V'
             else:
-                students.loc[student_id, q] = 'X' if ret[q] == '' else ret[q]
+                results.loc[student_id, q] = 'X' if ret[q] == '' else ret[q]
 
 
 def main():
@@ -188,8 +188,10 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Query homework and exam scoring tool.')
-    parser.add_argument('-s', '--students', type=str, default='students.csv',
-                        help='Student ID or csv file containing all IDs')
+    parser.add_argument('-i', '--id', type=str,
+                        help='Student ID of submission to be scored')
+    parser.add_argument('-r', '--results', type=str, default='results.csv',
+                        help='Result file, update if already exist')
     parser.add_argument('-b', '--batches', type=directory,
                         default=list_dir(), nargs='*',
                         help='Batch(directory) to score, default all batches')
@@ -197,8 +199,8 @@ def main():
                         help='Folder containing dataset and setup script')
     args = parser.parse_args()
 
-    students = pd.read_csv(args.students).set_index('id')
-    students = students.sort_index()
+    results = pd.read_csv(args.results).set_index('id')
+    results = results.sort_index()
 
     # Start MySQL server
     mysql_server('./start_mysql_server.sh')
@@ -214,8 +216,8 @@ def main():
     batches.sort()
     for i, batch in enumerate(batches):
         print(f'Running batch [{batch}], {i + 1} of {len(batches)}')
-        check_batch(students, batch)
-    students.to_csv('score.csv')
+        check_batch(results, batch)
+    results.to_csv(args.results)
 
     # Clean up MySQL server
     mysql_server('./cleanup_mysql_server.sh', start=False)
