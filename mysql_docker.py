@@ -25,3 +25,12 @@ class MysqlDocker:
                 environment=[f'MYSQL_ROOT_PASSWORD="{root_pw}"'])
             self._root_pw = root_pw
             return self._server.short_id
+
+    def stop_server(self, remove=True):
+        """Stop mysql server container."""
+        if self._server is not None:
+            self._server.stop()
+            if remove:
+                self._server.remove()
+            self._server = None
+            self._root_pw = None
